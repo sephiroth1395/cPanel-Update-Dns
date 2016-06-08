@@ -1,5 +1,6 @@
 import base64
 import argparse
+from urllib.parse import urlencode
 from urllib.request import urlopen,Request
 import xml.etree.ElementTree as etree
 
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     # Update or add the record
     query = "&address=" + ip
     if type == "TXT":
-        query = "&txtdata=" + value
+        query = "&" + urlencode( {'txtdata': value} )
 
     url = CONFIG['url'] + "/xml-api/cpanel?cpanel_xmlapi_module=ZoneEdit&cpanel_xmlapi_func=" + ("add" if line == "0" else "edit") + "_zone_record&cpanel_xmlapi_apiversion=2&domain="+ domain + "&name=" + record + "&type=" + type + "&ttl=" + ttl + query
     if line != "0":
