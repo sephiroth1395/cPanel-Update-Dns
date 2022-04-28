@@ -5,7 +5,7 @@ import json
 
 def fetch_external_ip():
     url = 'https://api64.ipify.org'
-    ip = urlopen(url).read().decode('utf-8')[:-1]
+    ip = urlopen(url).read().decode('utf-8')
     return ip
 
 if __name__ == "__main__":
