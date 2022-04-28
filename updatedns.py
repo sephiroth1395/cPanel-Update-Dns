@@ -58,11 +58,20 @@ if __name__ == "__main__":
     root = json.loads(xml)
 
     line = "0"
-    for i in range(0, len(root["cpanelresult"]["data"][0]["record"])):
-        if "name" in root["cpanelresult"]["data"][0]["record"][i]:
-            if root["cpanelresult"]["data"][0]["record"][i]["name"] == record:
-                line = root["cpanelresult"]["data"][0]["record"][i]["line"]
+    ipFromDNS = ""
+
+    records = root["cpanelresult"]["data"][0]["record"]
+
+    for i in range(0, len(records)):
+        if "name" in records[i]:
+            if records[i]["name"] == record:
+                line = records[i]["line"]
+                ipFromDNS = records[i]["record"]
                 break
+
+    if ipFromDNS==ip:
+        print("The same IP is already set! Exiting.")
+        exit(0)
 
     # Update or add the record
     query = "&address=" + ip
