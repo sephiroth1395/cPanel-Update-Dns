@@ -65,13 +65,14 @@ if __name__ == "__main__":
 
     # Show all arguments
     parser.add_argument('--ttl', default='300', help='Time To Live')
-    parser.add_argument('--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6')
-    parser.add_argument('--method', default='argument', help='The method to obtain the IP address', 
+    parser.add_argument('-t', '--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6')
+    parser.add_argument('-m', '--method', default='argument', help='The method to obtain the IP address', 
                         choices=['args', 'online', 'opnsense', 'interface'], required=True)
     parser.add_argument('--ip', help='The IPV4/IPV6 address when using the args method')
     parser.add_argument('--itf', help='The interface to poll when using the interface method')
-    parser.add_argument('--name', help='Your record name, ie: ipv6.domain.com', required=True)
-    parser.add_argument('--domain', help='The domain name containing the record name', required=True)
+    parser.add_argument('-n', '--name', help='Your record name, ie: ipv6.domain.com', required=True)
+    parser.add_argument('-d', '--domain', help='The domain name containing the record name', required=True)
+    parser.add_argument('-v', '--verbose', help='Display extra information.  If not set only errors are printed', action='store_true')
     args = parser.parse_args()
 
     if "CONFIG" in locals():
@@ -128,9 +129,11 @@ if __name__ == "__main__":
             if (records[i]["name"] == record) and (records[i]["type"] == type):
                 line = records[i]["line"]
                 ipFromDNS = records[i]["record"]
+                break
 
-    if ipFromDNS==ip:
-        print("The same IP is already set! Exiting.")
+    if (ipFromDNS == ip):
+        if(args.verbose):
+            print("INFO - The same IP is already set! Exiting.")
         exit(0)
 
     # Update or add the record
@@ -140,11 +143,24 @@ if __name__ == "__main__":
     if line != "0":
         url += "&Line=" + str(line)
 
-    print("URL sent to the server: " + url)
+    if (args.verbose):
+        print("INFO - URL sent to the server: " + url)
 
     q = Request(url)
     q.add_header('Authorization', auth_string)
     a = urlopen(q).read().decode("utf-8")
-    print("Response from the server: ")
-    # TODO: Should parse the result
-    print(a)
+
+    answer = a.replace('\n', ' ')
+    root = json.loads(answer)
+    
+    result = root['cpanelresult']['data'][0]['result']
+
+    if (args.verbose):
+        print("INFO - Response from the server: ")
+        print(result)
+
+    if (result['status'] != 1):
+        print("ERROR - Could not update cPanel DNS record.")
+        exit(1)
+
+    exit(0)
