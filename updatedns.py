@@ -9,6 +9,7 @@
 
 import base64
 import argparse
+import urllib3
 from urllib.request import urlopen,Request
 import json
 
@@ -52,6 +53,7 @@ def fetch_interface_ip(itf):
 def fetch_OPNsense(api_key = '', api_secret = '', opnsense_url = '', itf = ''):
 
     try:
+        urllib3.disable_warnings()
         interface_client = diagnostics.InterfaceClient(api_key, api_secret, opnsense_url, verify_cert=False, timeout = 5)
     except:
         print('ERROR - Cannot connect to OPNsense API')
