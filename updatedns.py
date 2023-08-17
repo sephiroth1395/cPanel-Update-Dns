@@ -125,10 +125,9 @@ if __name__ == "__main__":
 
     for i in range(0, len(records)):
         if "name" in records[i]:
-            if records[i]["name"] == record:
+            if (records[i]["name"] == record) and (records[i]["type"] == type):
                 line = records[i]["line"]
                 ipFromDNS = records[i]["record"]
-                break
 
     if ipFromDNS==ip:
         print("The same IP is already set! Exiting.")
