@@ -11,17 +11,32 @@ import base64
 import argparse
 from urllib.request import urlopen,Request
 import json
-from pyopnsense import diagnostics
 
 ### Get IP via external service
-
 def fetch_external_ip():
     url = 'https://api64.ipify.org'
     ip = urlopen(url).read().decode('utf-8')
     return ip
 
-### Get IP via OPNsense API
+### Get IP via local network interfaces
+def fetch_interface_ip(itf):
 
+    if(type == 'A'):
+        ip = netifaces.ifaddresses(itf)[netifaces.AF_INET][0]['addr']
+    elif(type == 'AAAA'):
+        entries = netifaces.ifaddresses(itf)[netifaces.AF_INET6]
+        for entry in entries:
+            if('fe80' not in entry):
+                ip = entry['addr']
+                break
+
+    if(ip):
+        return ip
+    else:
+        print('ERROR - Could not obtain IP address from local interface.')
+        exit(1)
+
+### Get IP via OPNsense API
 def fetch_OPNsense(type = 'A', api_key = '', api_secret = '', opnsense_url = '', itf = ''):
 
     try:
@@ -64,7 +79,7 @@ if __name__ == "__main__":
         parser.add_argument('--opn_secret', help='OPNsense method only: the API secret')
 
     # Show all arguments
-    parser.add_argument('--ttl', default='300', help='Time To Live')
+    parser.add_argument('--ttl', default='3600', help='Time To Live')
     parser.add_argument('-t', '--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6')
     parser.add_argument('-m', '--method', default='argument', help='The method to obtain the IP address', 
                         choices=['args', 'online', 'opnsense', 'interface'], required=True)
@@ -102,8 +117,10 @@ if __name__ == "__main__":
         print("Fetching current IP to use")
         ip = fetch_external_ip()
     elif(args.method == 'interface'):
-        ip = '0.0.0.0'
+        import netifaces
+        ip = fetch_interface_ip(args.itf)
     elif(args.method == 'opnsense'):
+        from pyopnsense import diagnostics
         ip = fetch_OPNsense(type, args.opn_key, args.opn_secret, args.opn_url, args.opn_itf)
     else:
         print('ERROR - Unexpected IP extraction method.')
@@ -145,7 +162,7 @@ if __name__ == "__main__":
 
     if (args.verbose):
         print("INFO - URL sent to the server: " + url)
-
+    
     q = Request(url)
     q.add_header('Authorization', auth_string)
     a = urlopen(q).read().decode("utf-8")
