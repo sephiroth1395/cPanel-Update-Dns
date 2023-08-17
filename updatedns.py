@@ -14,30 +14,42 @@ import json
 
 ### Get IP via external service
 def fetch_external_ip():
-    url = 'https://api64.ipify.org'
-    ip = urlopen(url).read().decode('utf-8')
-    return ip
+
+    try:
+        if(type == 'A'):
+            url = 'https://api.ipify.org'
+            ip = urlopen(url).read().decode('utf-8')        
+        if(type == 'AAAA'):
+            url = 'https://api64.ipify.org'
+            ip = urlopen(url).read().decode('utf-8')
+    
+        if(args.verbose): print("INFO - Detected IP address: " + ip)
+        return ip
+    except:
+        print('ERROR - Could not obtain IP address from ipify API.')
+        exit(1)
 
 ### Get IP via local network interfaces
 def fetch_interface_ip(itf):
 
-    if(type == 'A'):
-        ip = netifaces.ifaddresses(itf)[netifaces.AF_INET][0]['addr']
-    elif(type == 'AAAA'):
-        entries = netifaces.ifaddresses(itf)[netifaces.AF_INET6]
-        for entry in entries:
-            if('fe80' not in entry):
-                ip = entry['addr']
-                break
+    try:
+        if(type == 'A'):
+            ip = netifaces.ifaddresses(itf)[netifaces.AF_INET][0]['addr']
+        elif(type == 'AAAA'):
+            entries = netifaces.ifaddresses(itf)[netifaces.AF_INET6]
+            for entry in entries:
+                if('fe80' not in entry):
+                    ip = entry['addr']
+                    break
 
-    if(ip):
+        if(args.verbose): print("INFO - Detected IP address: " + ip)
         return ip
-    else:
+    except:
         print('ERROR - Could not obtain IP address from local interface.')
         exit(1)
 
 ### Get IP via OPNsense API
-def fetch_OPNsense(type = 'A', api_key = '', api_secret = '', opnsense_url = '', itf = ''):
+def fetch_OPNsense(api_key = '', api_secret = '', opnsense_url = '', itf = ''):
 
     try:
         interface_client = diagnostics.InterfaceClient(api_key, api_secret, opnsense_url, verify_cert=False, timeout = 5)
@@ -57,6 +69,7 @@ def fetch_OPNsense(type = 'A', api_key = '', api_secret = '', opnsense_url = '',
                 address = entry['ip']
 
     if(address):
+        if(args.verbose): print("INFO - Detected IP address: " + address)
         return address
     else:
         print('ERROR - Could not obtain IP address from OPNsense.')
@@ -111,17 +124,18 @@ if __name__ == "__main__":
     type = args.type.upper()
 
     # Obtain the IP address
+    if(args.verbose): print("Obtaining IP address for record " + type + " using method " + args.method)
+
     if (args.method == 'arguments'):
         ip = args.ip
     elif(args.method == 'online'):
-        print("Fetching current IP to use")
         ip = fetch_external_ip()
     elif(args.method == 'interface'):
         import netifaces
         ip = fetch_interface_ip(args.itf)
     elif(args.method == 'opnsense'):
         from pyopnsense import diagnostics
-        ip = fetch_OPNsense(type, args.opn_key, args.opn_secret, args.opn_url, args.opn_itf)
+        ip = fetch_OPNsense(args.opn_key, args.opn_secret, args.opn_url, args.opn_itf)
     else:
         print('ERROR - Unexpected IP extraction method.')
         exit(1)
