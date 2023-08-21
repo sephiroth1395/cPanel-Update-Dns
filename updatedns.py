@@ -169,37 +169,94 @@ if __name__ == "__main__":
     try:
         from config import CONFIG
     except ImportError:
-        parser.add_argument('--username', help='cPanel username', required=True)
-        parser.add_argument('--password', help='cPanel password', required=True)
-        parser.add_argument('--url', help='URL to your cPanel', required=True)
-        parser.add_argument('--opn_itf', help='OPNsense method only: the WAN interface (i.e. vtnet0)')
-        parser.add_argument('--opn_url', help='OPNsense method only: the API url (i.e. http://192.168.0.1/api')
-        parser.add_argument('--opn_key', help='OPNsense method only: the API key')
-        parser.add_argument('--opn_secret', help='OPNsense method only: the API secret')
+        pass
 
-    # Show all arguments
-    parser.add_argument('--ttl', default='14400', help='Time To Live (default: %(default)s)')
     parser.add_argument('-t', '--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6 (default: %(default)s)')
+    parser.add_argument('--username', help='cPanel username')
+    parser.add_argument('--password', help='cPanel password')
+    parser.add_argument('--url', help='URL to your cPanel')
+    parser.add_argument('--opn_itf', help='OPNsense method only: the WAN interface (i.e. vtnet0)')
+    parser.add_argument('--opn_url', help='OPNsense method only: the API url (i.e. http://192.168.0.1/api')
+    parser.add_argument('--opn_key', help='OPNsense method only: the API key')
+    parser.add_argument('--opn_secret', help='OPNsense method only: the API secret')
+    parser.add_argument('--ttl', default='14400', help='Time To Live (default: %(default)s)')
     parser.add_argument('-m', '--method', default='argument', help='The method to obtain the IP address', 
-                        choices=['args', 'online', 'opnsense', 'interface'], required=True)
+                         choices=['args', 'online', 'opnsense', 'interface'])
     parser.add_argument('--ip', help='The IPV4/IPV6 address when using the args method')
     parser.add_argument('--itf', help='The interface to poll when using the interface method')
-    parser.add_argument('-n', '--name', help='Your record name, ie: ipv6.domain.com', required=True)
-    parser.add_argument('-d', '--domain', help='The domain name containing the record name', required=True)
+    parser.add_argument('-n', '--name', help='Your record name, ie: ipv6.domain.com')
+    parser.add_argument('-d', '--domain', help='The domain name containing the record name')
     parser.add_argument('-s', '--server', help='Run an HTTP daemon to handle update requests on demand', action='store_true')
     parser.add_argument('-p', '--port', default='8080', help='Port for the HTTP daemon (default: %(default)s)')
     parser.add_argument('-v', '--verbose', help='Display extra information.  If not set only errors are printed', action='store_true')
+    
     args = parser.parse_args()
 
     if "CONFIG" in locals():
-        args.username = CONFIG['username']
-        args.password = CONFIG['password']
-        args.url = CONFIG['url']
+        
+        if 'username' in CONFIG: args.username = CONFIG['username']
+        if 'password' in CONFIG: args.password = CONFIG['password']
+        if 'url' in CONFIG: args.url = CONFIG['url']
+        if 'ttl' in CONFIG: args.ttl = CONFIG['ttl']
+        if 'type' in CONFIG: args.type = CONFIG['type']
+
+        if 'name' in CONFIG:
+            args.name = CONFIG['name']                        
+        elif (args.name is None):
+            print("ERROR - Missing record name")
+            exit(1)
+
+        if 'domain' in CONFIG:
+            args.domain = CONFIG['domain']
+        elif (args.domain is None):
+            print("ERROR - Missing cPanel zone name")
+            exit(1)
+
+        if (args.server == True):
+            if 'port' in CONFIG:
+                args.port = CONFIG['port']
+
+        if 'method' in CONFIG:
+            args.method = CONFIG['method']
+        elif (args.method is None):
+            print("ERROR - Missing update method")
+            exit(1)
+
+        if (args.method == 'interface'):
+            if 'itf' in CONFIG:
+                args.itf = CONFIG['itf']
+            elif (args.itf is None):
+                print("ERROR - Missing network interface")
+                exit(1)
+
+        if (args.method == 'args'):
+            if 'ip' in CONFIG:
+                args.ip = CONFIG['ip']
+            elif (args.ip is None):
+                print("ERROR - Missing IP address")
+                exit(1)
+
         if (args.method == 'opnsense'):
-            args.opn_itf = CONFIG['opn_itf']
-            args.opn_url = CONFIG['opn_url']
-            args.opn_key = CONFIG['opn_key']
-            args.opn_secret = CONFIG['opn_secret']
+            if 'opn_itf' in CONFIG:
+                args.opn_itf = CONFIG['opn_itf']
+            elif (args.opn_itf is None):
+                print("ERROR - Missing OPNsense interface")
+                exit(1)
+            if 'opn_url' in CONFIG:
+                args.opn_url = CONFIG['opn_url']
+            elif (args.opn_url is None):
+                print("ERROR - Missing OPNsense API URL")
+                exit(1)
+            if 'opn_key' in CONFIG:
+                args.opn_key = CONFIG['opn_key']
+            elif (args.opn_key is None):
+                print("ERROR - Missing OPNsense API key")
+                exit(1)
+            if 'opn_secret' in CONFIG:
+                args.opn_secret = CONFIG['opn_secret']
+            elif (args.opn_secret is None):
+                print("ERROR - Missing OPNsense API secret")
+                exit(1)
 
     ##### 
 
