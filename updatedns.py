@@ -14,7 +14,7 @@ from urllib.request import urlopen,Request
 import json
 
 ### Get IP via external service
-def fetch_external_ip():
+def fetch_external_ip(type):
 
     try:
         if(type == 'A'):
@@ -31,7 +31,7 @@ def fetch_external_ip():
         exit(1)
 
 ### Get IP via local network interfaces
-def fetch_interface_ip(itf):
+def fetch_interface_ip(itf, type):
 
     try:
         if(type == 'A'):
@@ -50,7 +50,7 @@ def fetch_interface_ip(itf):
         exit(1)
 
 ### Get IP via OPNsense API
-def fetch_OPNsense(api_key = '', api_secret = '', opnsense_url = '', itf = ''):
+def fetch_OPNsense(api_key = '', api_secret = '', opnsense_url = '', itf = '', type = ''):
 
     try:
         urllib3.disable_warnings()
@@ -77,43 +77,8 @@ def fetch_OPNsense(api_key = '', api_secret = '', opnsense_url = '', itf = ''):
         print('ERROR - Could not obtain IP address from OPNsense.')
         exit(1)
 
-### Main routine
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    try:
-        from config import CONFIG
-    except ImportError:
-        parser.add_argument('--username', help='cPanel username', required=True)
-        parser.add_argument('--password', help='cPanel password', required=True)
-        parser.add_argument('--url', help='URL to your cPanel', required=True)
-        parser.add_argument('--opn_itf', help='OPNsense method only: the WAN interface (i.e. vtnet0)')
-        parser.add_argument('--opn_url', help='OPNsense method only: the API url (i.e. http://192.168.0.1/api')
-        parser.add_argument('--opn_key', help='OPNsense method only: the API key')
-        parser.add_argument('--opn_secret', help='OPNsense method only: the API secret')
-
-    # Show all arguments
-    parser.add_argument('--ttl', default='3600', help='Time To Live')
-    parser.add_argument('-t', '--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6')
-    parser.add_argument('-m', '--method', default='argument', help='The method to obtain the IP address', 
-                        choices=['args', 'online', 'opnsense', 'interface'], required=True)
-    parser.add_argument('--ip', help='The IPV4/IPV6 address when using the args method')
-    parser.add_argument('--itf', help='The interface to poll when using the interface method')
-    parser.add_argument('-n', '--name', help='Your record name, ie: ipv6.domain.com', required=True)
-    parser.add_argument('-d', '--domain', help='The domain name containing the record name', required=True)
-    parser.add_argument('-v', '--verbose', help='Display extra information.  If not set only errors are printed', action='store_true')
-    args = parser.parse_args()
-
-    if "CONFIG" in locals():
-        args.username = CONFIG['username']
-        args.password = CONFIG['password']
-        args.url = CONFIG['url']
-        if (args.method == 'opnsense'):
-            args.opn_itf = CONFIG['opn_itf']
-            args.opn_url = CONFIG['opn_url']
-            args.opn_key = CONFIG['opn_key']
-            args.opn_secret = CONFIG['opn_secret']
+### Run the IP date sequence
+def do_IP_update(args):
 
     # Generate a auth_string to connect to cPanel
     auth_string = 'Basic ' + base64.b64encode((args.username+':'+args.password).encode()).decode("utf-8")
@@ -126,21 +91,19 @@ if __name__ == "__main__":
     type = args.type.upper()
 
     # Obtain the IP address
-    if(args.verbose): print("Obtaining IP address for record " + type + " using method " + args.method)
+    if(args.verbose): print("INFO - Obtaining IP address for record " + type + " using method " + args.method)
 
     if (args.method == 'arguments'):
         ip = args.ip
     elif(args.method == 'online'):
-        ip = fetch_external_ip()
+        ip = fetch_external_ip(type)
     elif(args.method == 'interface'):
-        import netifaces
-        ip = fetch_interface_ip(args.itf)
+        ip = fetch_interface_ip(args.itf, type)
     elif(args.method == 'opnsense'):
-        from pyopnsense import diagnostics
-        ip = fetch_OPNsense(args.opn_key, args.opn_secret, args.opn_url, args.opn_itf)
+        ip = fetch_OPNsense(args.opn_key, args.opn_secret, args.opn_url, args.opn_itf, type)
     else:
         print('ERROR - Unexpected IP extraction method.')
-        exit(1)
+        return(1)
 
     ttl = args.ttl
 
@@ -167,7 +130,7 @@ if __name__ == "__main__":
     if (ipFromDNS == ip):
         if(args.verbose):
             print("INFO - The same IP is already set! Exiting.")
-        exit(0)
+        return(0)
 
     # Update or add the record
     query = "&address=" + ip
@@ -194,6 +157,103 @@ if __name__ == "__main__":
 
     if (result['status'] != 1):
         print("ERROR - Could not update cPanel DNS record.")
-        exit(1)
+        return(1)
 
-    exit(0)
+    return(0)
+
+### Main routine
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    try:
+        from config import CONFIG
+    except ImportError:
+        parser.add_argument('--username', help='cPanel username', required=True)
+        parser.add_argument('--password', help='cPanel password', required=True)
+        parser.add_argument('--url', help='URL to your cPanel', required=True)
+        parser.add_argument('--opn_itf', help='OPNsense method only: the WAN interface (i.e. vtnet0)')
+        parser.add_argument('--opn_url', help='OPNsense method only: the API url (i.e. http://192.168.0.1/api')
+        parser.add_argument('--opn_key', help='OPNsense method only: the API key')
+        parser.add_argument('--opn_secret', help='OPNsense method only: the API secret')
+
+    # Show all arguments
+    parser.add_argument('--ttl', default='14400', help='Time To Live (default: %(default)s)')
+    parser.add_argument('-t', '--type', default='A', help='Type of record: A for IPV4 or AAAA for IPV6 (default: %(default)s)')
+    parser.add_argument('-m', '--method', default='argument', help='The method to obtain the IP address', 
+                        choices=['args', 'online', 'opnsense', 'interface'], required=True)
+    parser.add_argument('--ip', help='The IPV4/IPV6 address when using the args method')
+    parser.add_argument('--itf', help='The interface to poll when using the interface method')
+    parser.add_argument('-n', '--name', help='Your record name, ie: ipv6.domain.com', required=True)
+    parser.add_argument('-d', '--domain', help='The domain name containing the record name', required=True)
+    parser.add_argument('-s', '--server', help='Run an HTTP daemon to handle update requests on demand', action='store_true')
+    parser.add_argument('-p', '--port', default='8080', help='Port for the HTTP daemon (default: %(default)s)')
+    parser.add_argument('-v', '--verbose', help='Display extra information.  If not set only errors are printed', action='store_true')
+    args = parser.parse_args()
+
+    if "CONFIG" in locals():
+        args.username = CONFIG['username']
+        args.password = CONFIG['password']
+        args.url = CONFIG['url']
+        if (args.method == 'opnsense'):
+            args.opn_itf = CONFIG['opn_itf']
+            args.opn_url = CONFIG['opn_url']
+            args.opn_key = CONFIG['opn_key']
+            args.opn_secret = CONFIG['opn_secret']
+
+    ##### 
+
+    if(args.method == 'interface'): import netifaces
+    elif(args.method == 'opnsense'): from pyopnsense import diagnostics
+
+    ##### 
+
+    if(args.server == True):
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        class MyServer(BaseHTTPRequestHandler):
+            def do_GET(self):
+
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+
+                # Update the DNS record  
+                if(self.path == '/update'):
+                    # Do the update
+                    args.type = 'A'
+                    result_v4 = do_IP_update(args)
+                    args.type = 'AAAA'
+                    result_v6 = do_IP_update(args)
+
+                    # Define return 
+                    if (result_v4 == 0) and (result_v6 == 0): success = True
+                    else: success = False
+
+                    # Return webserver answer 
+                    if(success == True):
+                        self.wfile.write(bytes("OK", "utf-8"))
+                    else:
+                        self.wfile.write(bytes("FAIL", "utf-8"))
+                else:
+                    self.wfile.write(bytes("<html><head><title>cPanel-Update-Dns</title></head>", "utf-8"))
+                    self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
+                    self.wfile.write(bytes("<body>", "utf-8"))
+                    self.wfile.write(bytes("<p>This is not a valid HTTP request.</p>", "utf-8"))
+                    self.wfile.write(bytes("</body></html>", "utf-8"))
+
+        webServer = HTTPServer(("", int(args.port)), MyServer)
+        if(args.verbose): print("INFO - Server started http://0.0.0.0:%s" % (args.port))
+
+        try:
+            webServer.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
+        webServer.server_close()
+        if(args.verbose): print("INFO - Server stopped.")
+
+    ##### 
+
+    else:
+        returnval = do_IP_update(args)
+        exit(returnval)
