@@ -192,71 +192,90 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    if "CONFIG" in locals():
+    if not "CONFIG" in locals():
+        CONFIG = {} 
         
-        if 'username' in CONFIG: args.username = CONFIG['username']
-        if 'password' in CONFIG: args.password = CONFIG['password']
-        if 'url' in CONFIG: args.url = CONFIG['url']
-        if 'ttl' in CONFIG: args.ttl = CONFIG['ttl']
-        if 'type' in CONFIG: args.type = CONFIG['type']
+    if 'username' in CONFIG:
+        args.username = CONFIG['username']
+    elif (args.username is None):
+        print("ERROR - Missing cPanel username")
+        exit(1)
 
-        if 'name' in CONFIG:
-            args.name = CONFIG['name']                        
-        elif (args.name is None):
-            print("ERROR - Missing record name")
+    if 'password' in CONFIG: 
+        args.password = CONFIG['password']
+    elif (args.password is None):
+        print("ERROR - Missing cPanel password")
+        exit(1)
+
+    if 'url' in CONFIG: 
+        args.url = CONFIG['url']
+    elif (args.url is None):
+        print("ERROR - Missing cPanel URL")
+        exit(1)
+
+    if 'ttl' in CONFIG: 
+        args.ttl = CONFIG['ttl']
+
+    if 'type' in CONFIG: 
+        args.type = CONFIG['type']
+
+    if 'name' in CONFIG:
+        args.name = CONFIG['name']                        
+    elif (args.name is None):
+        print("ERROR - Missing record name")
+        exit(1)
+
+    if 'domain' in CONFIG:
+        args.domain = CONFIG['domain']
+    elif (args.domain is None):
+        print("ERROR - Missing cPanel zone name")
+        exit(1)
+
+    if (args.server == True):
+        if 'port' in CONFIG:
+            args.port = CONFIG['port']
+
+    if 'method' in CONFIG:
+        args.method = CONFIG['method']
+    elif (args.method is None):
+        print("ERROR - Missing update method")
+        exit(1)
+
+    if (args.method == 'interface'):
+        if 'itf' in CONFIG:
+            args.itf = CONFIG['itf']
+        elif (args.itf is None):
+            print("ERROR - Missing network interface")
             exit(1)
 
-        if 'domain' in CONFIG:
-            args.domain = CONFIG['domain']
-        elif (args.domain is None):
-            print("ERROR - Missing cPanel zone name")
+    if (args.method == 'args'):
+        if 'ip' in CONFIG:
+            args.ip = CONFIG['ip']
+        elif (args.ip is None):
+            print("ERROR - Missing IP address")
             exit(1)
 
-        if (args.server == True):
-            if 'port' in CONFIG:
-                args.port = CONFIG['port']
-
-        if 'method' in CONFIG:
-            args.method = CONFIG['method']
-        elif (args.method is None):
-            print("ERROR - Missing update method")
+    if (args.method == 'opnsense'):
+        if 'opn_itf' in CONFIG:
+            args.opn_itf = CONFIG['opn_itf']
+        elif (args.opn_itf is None):
+            print("ERROR - Missing OPNsense interface")
             exit(1)
-
-        if (args.method == 'interface'):
-            if 'itf' in CONFIG:
-                args.itf = CONFIG['itf']
-            elif (args.itf is None):
-                print("ERROR - Missing network interface")
-                exit(1)
-
-        if (args.method == 'args'):
-            if 'ip' in CONFIG:
-                args.ip = CONFIG['ip']
-            elif (args.ip is None):
-                print("ERROR - Missing IP address")
-                exit(1)
-
-        if (args.method == 'opnsense'):
-            if 'opn_itf' in CONFIG:
-                args.opn_itf = CONFIG['opn_itf']
-            elif (args.opn_itf is None):
-                print("ERROR - Missing OPNsense interface")
-                exit(1)
-            if 'opn_url' in CONFIG:
-                args.opn_url = CONFIG['opn_url']
-            elif (args.opn_url is None):
-                print("ERROR - Missing OPNsense API URL")
-                exit(1)
-            if 'opn_key' in CONFIG:
-                args.opn_key = CONFIG['opn_key']
-            elif (args.opn_key is None):
-                print("ERROR - Missing OPNsense API key")
-                exit(1)
-            if 'opn_secret' in CONFIG:
-                args.opn_secret = CONFIG['opn_secret']
-            elif (args.opn_secret is None):
-                print("ERROR - Missing OPNsense API secret")
-                exit(1)
+        if 'opn_url' in CONFIG:
+            args.opn_url = CONFIG['opn_url']
+        elif (args.opn_url is None):
+            print("ERROR - Missing OPNsense API URL")
+            exit(1)
+        if 'opn_key' in CONFIG:
+            args.opn_key = CONFIG['opn_key']
+        elif (args.opn_key is None):
+            print("ERROR - Missing OPNsense API key")
+            exit(1)
+        if 'opn_secret' in CONFIG:
+            args.opn_secret = CONFIG['opn_secret']
+        elif (args.opn_secret is None):
+            print("ERROR - Missing OPNsense API secret")
+            exit(1)
 
     ##### 
 
